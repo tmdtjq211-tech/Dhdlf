@@ -150,16 +150,42 @@ window.selectMap = (mode) => {
     document.getElementById('char-select').classList.remove('hidden');
     const grid = document.getElementById('char-grid');
     grid.innerHTML = '';
+    const charIcons = { Ares: '⚔️', Artemis: '🏹', Hermes: '⚡', Poseidon: '🌊' };
     for(let key in CHARACTERS) {
         const c = CHARACTERS[key];
         const synWeapon = WEAPONS[c.signatureWeapon].name;
+        const hpPct = Math.round(c.hp / 1.5);
+        const atkPct = Math.round(c.atk / 1.5);
+        const defPct = Math.round(c.def / 1.5);
+        const icon = charIcons[key] || '👤';
         grid.innerHTML += `<div class="card" onclick="window.selectChar('${key}')">
-            <div class="card-title" style="color:${c.color}">${c.name}</div>
-            <div class="card-desc" style="color:var(--gold); margin-bottom:10px;">시너지 무기: ${synWeapon}</div>
+            <div style="font-size:36px; margin-bottom:8px; filter: drop-shadow(0 0 8px ${c.color});">${icon}</div>
+            <div class="card-title" style="color:${c.color}; text-shadow: 0 0 12px ${c.color}80;">${c.name}</div>
+            <div class="card-desc" style="color:var(--gold); margin-bottom:10px; font-size:11px; letter-spacing:1px;">▶ ${synWeapon}</div>
+            <div style="text-align:left; margin-bottom:10px; font-size:10px; color:rgba(180,210,255,0.7);">
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                    <span style="width:24px; color:var(--red);">HP</span>
+                    <div style="flex:1; height:4px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden;">
+                        <div style="width:${hpPct}%; height:100%; background:var(--red);"></div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                    <span style="width:24px; color:var(--gold);">ATK</span>
+                    <div style="flex:1; height:4px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden;">
+                        <div style="width:${atkPct}%; height:100%; background:var(--gold);"></div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="width:24px; color:var(--cyan);">DEF</span>
+                    <div style="flex:1; height:4px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden;">
+                        <div style="width:${defPct}%; height:100%; background:var(--cyan);"></div>
+                    </div>
+                </div>
+            </div>
             <div class="skill-desc">
-                <b>패시브:</b> ${c.passiveDesc}<br>
-                <b style="color:#2196f3;">스킬:</b> ${c.skillDesc}<br>
-                <b style="color:var(--gold);">궁극기:</b> ${c.ultDesc}
+                <b style="color:#aaa;">◆ 패시브:</b> ${c.passiveDesc.replace('[패시브] ','')}<br>
+                <b style="color:#2196f3;">◆ 스킬:</b> ${c.skillDesc.replace('[스킬] ','')}<br>
+                <b style="color:var(--gold);">◆ 궁극:</b> ${c.ultDesc.replace('[궁극기] ','')}
             </div>
         </div>`;
     }
@@ -337,21 +363,85 @@ function endGame(title, desc, color='var(--gold)') {
 
 function createSDMesh(colorHex, isAlly=false, scale=1.0) {
     const group = new THREE.Group();
+    
+    // === 머리 ===
     const headGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
     const headMat = new THREE.MeshLambertMaterial({color: colorHex});
     const head = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 3.5; group.add(head);
-
-    const bodyGeo = new THREE.CylinderGeometry(0.8, 0.8, 2, 8);
-    const bodyMat = new THREE.MeshLambertMaterial({color: 0x333333});
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 1.5; group.add(body);
-
-    const visorGeo = new THREE.BoxGeometry(1.6, 0.4, 0.2);
+    head.position.y = 3.8; group.add(head);
+    
+    // 헬멧 (머리 위 플레이트)
+    const helmetGeo = new THREE.BoxGeometry(2.0, 0.4, 2.0);
+    const helmetMat = new THREE.MeshLambertMaterial({color: 0x222233});
+    const helmet = new THREE.Mesh(helmetGeo, helmetMat);
+    helmet.position.y = 4.75; group.add(helmet);
+    
+    // 바이저 (눈)
+    const visorGeo = new THREE.BoxGeometry(1.5, 0.35, 0.2);
     const visorMat = new THREE.MeshBasicMaterial({color: 0x00e5ff});
     const visor = new THREE.Mesh(visorGeo, visorMat);
-    visor.position.set(0, 3.6, 0.91); group.add(visor);
-
+    visor.position.set(0, 3.85, 0.92); group.add(visor);
+    // 바이저 발광 포인트라이트
+    const visorLight = new THREE.PointLight(0x00e5ff, 0.8, 6);
+    visorLight.position.set(0, 3.85, 1.0); group.add(visorLight);
+    
+    // === 몸통 ===
+    const bodyGeo = new THREE.BoxGeometry(2.2, 2.2, 1.4);
+    const bodyMat = new THREE.MeshLambertMaterial({color: 0x1a2232});
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 1.8; group.add(body);
+    
+    // 가슴 갑옷 플레이트
+    const chestGeo = new THREE.BoxGeometry(2.0, 1.6, 0.4);
+    const chestMat = new THREE.MeshLambertMaterial({color: colorHex});
+    const chest = new THREE.Mesh(chestGeo, chestMat);
+    chest.position.set(0, 2.0, 0.78); group.add(chest);
+    
+    // 복부 발광 선
+    const beltGeo = new THREE.BoxGeometry(2.3, 0.25, 1.5);
+    const beltMat = new THREE.MeshBasicMaterial({color: 0x00e5ff});
+    const belt = new THREE.Mesh(beltGeo, beltMat);
+    belt.position.y = 0.95; group.add(belt);
+    
+    // === 어깨 갑옷 ===
+    const shoulderGeo = new THREE.BoxGeometry(0.8, 0.7, 1.0);
+    const shoulderMat = new THREE.MeshLambertMaterial({color: colorHex});
+    [-1.55, 1.55].forEach(sx => {
+        const sh = new THREE.Mesh(shoulderGeo, shoulderMat);
+        sh.position.set(sx, 2.7, 0); group.add(sh);
+    });
+    
+    // === 팔 ===
+    const armGeo = new THREE.BoxGeometry(0.55, 1.6, 0.55);
+    const armMat = new THREE.MeshLambertMaterial({color: 0x263040});
+    [-1.4, 1.4].forEach(ax => {
+        const arm = new THREE.Mesh(armGeo, armMat);
+        arm.position.set(ax, 1.6, 0); group.add(arm);
+        // 팔목 갑옷
+        const wristGeo = new THREE.BoxGeometry(0.65, 0.35, 0.65);
+        const wristMat = new THREE.MeshLambertMaterial({color: 0x334455});
+        const wrist = new THREE.Mesh(wristGeo, wristMat);
+        wrist.position.set(ax, 0.85, 0); group.add(wrist);
+    });
+    
+    // === 다리 ===
+    const legGeo = new THREE.BoxGeometry(0.8, 1.8, 0.8);
+    const legMat = new THREE.MeshLambertMaterial({color: 0x1a2232});
+    const kneeGeo = new THREE.BoxGeometry(0.9, 0.5, 0.9);
+    const kneeMat = new THREE.MeshLambertMaterial({color: colorHex});
+    [-0.55, 0.55].forEach(lx => {
+        const leg = new THREE.Mesh(legGeo, legMat);
+        leg.position.set(lx, -0.7, 0); group.add(leg);
+        // 무릎 갑옷
+        const knee = new THREE.Mesh(kneeGeo, kneeMat);
+        knee.position.set(lx, -0.3, 0.1); group.add(knee);
+        // 부츠
+        const bootGeo = new THREE.BoxGeometry(0.9, 0.5, 1.1);
+        const bootMat = new THREE.MeshLambertMaterial({color: 0x111111});
+        const boot = new THREE.Mesh(bootGeo, bootMat);
+        boot.position.set(lx, -1.6, 0.1); group.add(boot);
+    });
+    
     group.scale.set(scale, scale, scale);
     return group;
 }
@@ -431,14 +521,17 @@ window.startGame = async (weaponKey) => {
 
     UI.updateHP(); UI.updateStats();
 
-    const skyColor = currentMode==='hail'? 0x78909c : 0x87CEEB; 
+    const skyColor = currentMode==='hail'? 0x1a2030 : 0x0a0e18; 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(skyColor);
-    scene.fog = new THREE.FogExp2(skyColor, 0.003); 
+    scene.fog = new THREE.FogExp2(skyColor, 0.004); 
 
-    const ambLight = new THREE.AmbientLight(0xffffff, 0.65); scene.add(ambLight);
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x555555, 0.5); scene.add(hemi);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7); dirLight.position.set(40, 80, 40); scene.add(dirLight);
+    const ambLight = new THREE.AmbientLight(0x203050, 0.8); scene.add(ambLight);
+    const hemi = new THREE.HemisphereLight(0x1040aa, 0x000510, 0.6); scene.add(hemi);
+    const dirLight = new THREE.DirectionalLight(0x80c0ff, 0.8); dirLight.position.set(40, 80, 40); scene.add(dirLight);
+    // 포인트 라이트들로 분위기 연출
+    const accentLight1 = new THREE.PointLight(0x00e5ff, 1.5, 120); accentLight1.position.set(0, 25, 0); scene.add(accentLight1);
+    const accentLight2 = new THREE.PointLight(0xff2244, 0.8, 100); accentLight2.position.set(-100, 20, -100); scene.add(accentLight2);
 
     if (!camera) camera = new THREE.PerspectiveCamera(isMobile?65:75, 1, 0.1, 1000);
     if (!renderer) {
@@ -643,16 +736,24 @@ function setupMobileControls() {
 
 function createMapAndEntities() {
     const tileSize = 20, offset = -140; 
+    // 바닥: 어두운 타일 + 발광 그리드
     const floorGeo = new THREE.PlaneGeometry(300,300, 30,30);
-    const floorMat = new THREE.MeshLambertMaterial({color:0x2b3336}); 
+    const floorMat = new THREE.MeshLambertMaterial({color:0x111418}); 
     const floor = new THREE.Mesh(floorGeo, floorMat); floor.rotation.x=-Math.PI/2; scene.add(floor);
     
-    const gridHelper = new THREE.GridHelper(300, 30, 0x000000, 0x000000); 
-    gridHelper.position.y=0.05; gridHelper.material.opacity = 0.5; gridHelper.material.transparent = true;
+    // 타일 라인 (청록색 SF 그리드)
+    const gridHelper = new THREE.GridHelper(300, 30, 0x003344, 0x001122); 
+    gridHelper.position.y=0.05; gridHelper.material.opacity = 0.7; gridHelper.material.transparent = true;
     scene.add(gridHelper);
 
-    const wallMat = new THREE.MeshLambertMaterial({color:0x689f38}); 
-    const edgeMat = new THREE.MeshBasicMaterial({color:0x33691e});   
+    // 바닥 발광선 (대형 그리드)
+    const glowGridHelper = new THREE.GridHelper(300, 6, 0x00e5ff, 0x00e5ff);
+    glowGridHelper.position.y = 0.08; glowGridHelper.material.opacity = 0.12; glowGridHelper.material.transparent = true;
+    scene.add(glowGridHelper);
+
+    // 벽 재질: SF 군사 기지 콘크리트/금속
+    const wallMat = new THREE.MeshLambertMaterial({color:0x1a2332}); // 어두운 네이비 블루 콘크리트
+    const edgeMat = new THREE.MeshBasicMaterial({color:0x00e5ff});   // 청록 발광 엣지   
 
     let validEmptySpots = []; 
 
@@ -660,11 +761,19 @@ function createMapAndEntities() {
         for(let c=0; c<15; c++) {
             const px = c * tileSize + offset, pz = r * tileSize + offset, val = mazeMap[r][c];
             if(val === 1) {
+                // 메인 벽 (어두운 콘크리트)
                 const w = new THREE.Mesh(new THREE.BoxGeometry(20, 30, 20), wallMat);
                 w.position.set(px, 15, pz); scene.add(w); w.updateMatrixWorld(); 
                 w.userData.isStatic = true; collidableObjects.push(w);
-                const edge = new THREE.Mesh(new THREE.BoxGeometry(20.1, 0.5, 20.1), edgeMat);
-                edge.position.set(px, 30.1, pz); scene.add(edge);
+                // 상단 발광 엣지
+                const edge = new THREE.Mesh(new THREE.BoxGeometry(20.1, 0.6, 20.1), edgeMat);
+                edge.position.set(px, 30.3, pz); scene.add(edge);
+                // 중간 금속 띠
+                const midBand = new THREE.Mesh(new THREE.BoxGeometry(20.2, 1.0, 20.2), new THREE.MeshBasicMaterial({color: 0x223344}));
+                midBand.position.set(px, 15, pz); scene.add(midBand);
+                // 하단 발광 띠
+                const bottomGlow = new THREE.Mesh(new THREE.BoxGeometry(20.2, 0.4, 20.2), new THREE.MeshBasicMaterial({color: 0x004455}));
+                bottomGlow.position.set(px, 0.5, pz); scene.add(bottomGlow);
             } else { validEmptySpots.push({x: px, z: pz}); }
 
             if (currentMode==='ctf'||currentMode==='hail') {
@@ -1224,7 +1333,7 @@ function animate() {
         for(let g=-3;g<=3;g++) { minimapCtx.beginPath(); minimapCtx.moveTo(cx+g*20,0); minimapCtx.lineTo(cx+g*20,130); minimapCtx.stroke(); minimapCtx.beginPath(); minimapCtx.moveTo(0,cy+g*20); minimapCtx.lineTo(130,cy+g*20); minimapCtx.stroke(); }
         const toMap = p=>({x:cx+p.x*scale, y:cy+p.z*scale});
         
-        minimapCtx.fillStyle = 'rgba(104, 159, 56, 0.6)'; 
+        minimapCtx.fillStyle = 'rgba(26, 35, 50, 0.9)'; 
         collidableObjects.forEach(obj => {
             if(obj.userData.isStatic) {
                 const mp = toMap(obj.position), w = 20 * scale; minimapCtx.fillRect(mp.x - w/2, mp.y - w/2, w, w);
